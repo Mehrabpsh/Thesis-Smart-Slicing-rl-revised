@@ -6,6 +6,8 @@ from pathlib import Path
 from datetime import datetime
 import torch
 
+import shutil
+
 from .data.dataset_provider import DatasetProvider
 from .data.dataset_generator import Generator
 from .env.sfc_env import SFCEnvRevised
@@ -85,8 +87,11 @@ def main(cfg: DictConfig) -> None:
     logger.info(f" {len(vn_requests)} VN requests {'Loaded from path ' if flag_vn else 'Generated' }")
 
     if cfg.get('End_phase','All') == 'data' :
-        cache_path.rmdir()
-        logger.info(f"Clearning and removing cache")
+        if cache_path.exists() and cache_path.is_dir(): 
+            shutil.rmtree(cache_path)
+            logger.info(f"Cleaned and removed cache: {cache_path}")
+        else:
+            logger.info(f"Cache directory not found: {cache_path}")
 
         logger.info(f"Finishied")
         return
@@ -253,13 +258,19 @@ def main(cfg: DictConfig) -> None:
         evaluator.evaluate()
 
         logger.info(f"Experiment completed. Results saved to {output_dir / Path(eval_cfg.get('output_dir','output_eval')) }")
-        cache_path.rmdir()
-        logger.info(f"Clearning and removing cache")
+        if cache_path.exists() and cache_path.is_dir(): 
+            shutil.rmtree(cache_path)
+            logger.info(f"Cleaned and removed cache: {cache_path}")
+        else:
+            logger.info(f"Cache directory not found: {cache_path}")
 
     else :
         logger.info(" Evaluating skipped...")
-        cache_path.rmdir()
-        logger.info(f"Clearning and removing cache")
+        if cache_path.exists() and cache_path.is_dir(): 
+            shutil.rmtree(cache_path)
+            logger.info(f"Cleaned and removed cache: {cache_path}")
+        else:
+            logger.info(f"Cache directory not found: {cache_path}")
 
 
 
