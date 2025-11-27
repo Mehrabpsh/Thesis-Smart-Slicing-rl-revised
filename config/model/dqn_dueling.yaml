@@ -1,0 +1,23 @@
+type: dqn
+
+network:
+  type: mlp
+  hidden_sizes: [512, 512, 256]
+  activation: relu
+
+optimizer:
+  name: adam
+  lr: 1e-4
+
+dqn:
+  gamma: 0.99
+  buffer_size: 100000
+  batch_size: 512
+  eps_start: 1.0
+  eps_end: 0.01
+  eps_decay_steps: 100000
+  target_update: 2000
+  double: true
+  dueling: true
+  n_step: 3
+

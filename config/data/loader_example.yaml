@@ -1,0 +1,4 @@
+type: file
+pn_path: data/physical_network.json
+vn_path: data/vn_requests.json
+

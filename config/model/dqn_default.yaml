@@ -1,0 +1,22 @@
+type: dqn #random #Violent
+network:
+  type: mlp
+  hidden_sizes:
+  - 256
+  - 256
+  activation: relu
+optimizer:
+  name: adam
+  lr: 0.0003
+dqn:
+  gamma: 0.99
+  buffer_size: 50
+  batch_size: 16
+  eps_start: 1.0
+  eps_end: 0.05
+  eps_decay_steps: 200000
+  target_update: 10
+  double: false
+  dueling: false
+  n_step: 1
+

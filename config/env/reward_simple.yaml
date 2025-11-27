@@ -1,0 +1,24 @@
+state:
+  encoder: flattened_features
+  encoder_config:
+    include_pn_features: true
+    include_vn_features: true
+    include_embedding_status: true
+
+action:
+  type: node_selection
+  mask_illegal: true
+
+reward:
+  fn: terminal_qoe_penalty_on_fail
+  success_reward_scale: 0.5
+  fail_penalty: -0.5
+
+qoe:
+  name: simple_linear
+  config:
+    cpu_weight: 0.5
+    bw_weight: 0.5
+    latency_weight: -0.05
+    base_reward: 5.0
+

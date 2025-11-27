@@ -1,0 +1,76 @@
+p_net_setting:
+  #dataset_dir : 'datasets/p_net/5-erdos_renyi-cpu-bandwidth-delay-seed_42' # IF to be load rather than generated, from where to be loaded
+  #dataset_dir: "/home/mehrab/Workspaces/Thesis-Smart-Slicing-rl-revised/datasets/p_net/5nodes-erdos_renyi-cpu-bandwidth-delay-seed_42"
+  dataset_dir: 'datasets/p_net/5nodes-erdos_renyi-cpu-bandwidth-delay-seed_42'
+  topology:
+    type: erdos_renyi # some common topologies e.g. generate_erdos_renyi_pn, fully connected, ...
+    num_nodes: 5 #
+    p: 1
+  node_attrs_setting:
+    - name: cpu
+      distribution: uniform
+      dtype: float
+      low: 8
+      high: 16
+  link_attrs_setting:
+    - name: bandwidth
+      distribution: uniform
+      dtype: float
+      low: 60
+      high: 100
+    - name: delay
+      distribution: uniform
+      dtype: float
+      low: 1
+      high: 5
+  output:
+    if_save: True
+    save_dir: datasets/p_net ## Location of saving the data
+
+v_sim_setting:
+  #dataset_dir : 'datasets/v_nets/200-[3-5]-1.0-cpu--seed_42' # IF to be load rather than generated, from where to be loaded
+  #dataset_dir: 'datasets/v_nets/1000-[3-5]-1.0-cpu--seed_42'
+  #daaset_dir: "/home/mehrab/Workspaces/Thesis-Smart-Slicing-rl-revised/datasets/v_nets/100sfcReqs-20groups-[5-5]lengths-arrival_rate1.0-cpu-bandwidth-latency-seed_42"
+  #dataset_Dir: 'datasets/v_nets/100sfcReqs-2000groups-\[3-3\]lengths-arrival_rate1.0-cpu-bandwidth-latency-seed_42'
+  dataset_Dir: 'datasets/v_nets/100sfcReqs-200groups-[3-3]lengths-arrival_rate1.0-cpu-bandwidth-latency-seed_42'
+  num_v_nets: 100
+  num_groups: 200
+  cache_size: ${data.v_sim_setting.num_groups}
+  cache_path: '.vnReqs_cache'
+  sfc_len:
+    low: 3
+    high: 3
+    distribution: uniform
+  vnf_types:
+    - fw
+    - nat
+    - ids
+    - wanopt
+  node_attrs_setting:
+    - name: cpu
+      distribution: uniform
+      dtype: float
+      low: 0
+      high: 0
+  qos_attrs_setting:
+    - name: bandwidth
+      distribution: uniform
+      dtype: float
+      low: 1
+      high: 5
+    - name: latency
+      distribution: uniform
+      dtype: float
+      low: 8
+      high: 15
+  arrival_rate:
+    distribution: poisson
+    lam: 1.0
+  lifetime:
+    distribution: exponential
+    scale: 100.0
+  output:
+    if_save: True
+    save_dir: datasets/v_nets # Location of saving the data
+    events_file_name: events.json
+    setting_file_name: v_sim_setting.json

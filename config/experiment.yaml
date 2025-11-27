@@ -1,0 +1,15 @@
+defaults:
+  - data: synthetic_small
+  - env: default
+  - model: dqn_default
+  - train: small
+  - eval: default
+
+seed: 42
+output_dir: outputs
+project_name: test_lazyloader #Training_dqn #data_generation_for_test
+End_phase: 'All' #'data'
+# These will be merged from data config
+# p_net_setting: ...
+# v_sim_setting: ...
+

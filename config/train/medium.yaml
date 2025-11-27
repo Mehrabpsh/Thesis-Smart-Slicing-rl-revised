@@ -1,0 +1,6 @@
+episodes: 1000
+max_steps_per_episode: 500
+log_interval: 50
+eval_every: 5
+save_every: 50
+

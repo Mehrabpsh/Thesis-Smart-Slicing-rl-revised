@@ -1,0 +1,7 @@
+train: true #false
+episodes: ${data.v_sim_setting.num_groups}
+#episodes: 20
+max_steps_per_episode: 200000
+log_interval: 5
+eval_every: 1
+save_every: 10

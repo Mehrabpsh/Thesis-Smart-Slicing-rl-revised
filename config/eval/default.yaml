@@ -1,0 +1,22 @@
+enabled: false #true
+policies:
+  - name: dqn
+    type: dqn
+    checkpoint: null
+  - name: random
+    type: random
+  - name: violent
+    type: exhaustive
+    timeout_seconds: 5.0
+    max_embeddings: 1000
+metrics:
+  - acceptance_ratio
+  - response_time
+  - qoe
+runs: ${data.v_sim_setting.num_groups}
+seed: 42
+report:
+  csv: true
+  tensorboard: false
+  plots: true
+output_dir: output_eval
