@@ -14,6 +14,8 @@ from .replay_buffer import ReplayBuffer
 class DQNPolicy:
     """DQN policy with epsilon-greedy exploration."""
     
+    _class_name = "DQN" 
+    
     def __init__(
         self,
         state_dim: int,
@@ -219,3 +221,7 @@ class DQNPolicy:
         self.step_count = checkpoint.get("step_count", 0)
         self.epsilon = checkpoint.get("epsilon", self.eps_end)
 
+
+    @property
+    def name(self) -> str:
+        return self._class_name

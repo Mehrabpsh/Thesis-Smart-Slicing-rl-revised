@@ -68,7 +68,7 @@ class TrainerRevised:
         # episodes = num_groups
 
         
-        for episode in tqdm(range(self.episodes), desc="Training"):
+        for episode in tqdm(range(self.episodes), desc=f"Training {self.policy.name}"):
             
             obs, info = self.env.reset(group_id=episode, seed=self.config.get("seed"))
             episode_reward = 0.0 # Sum_r
@@ -83,9 +83,9 @@ class TrainerRevised:
                 if isinstance(self.policy, RandomPolicy):
                     action = self.policy.act(self.env)
                 elif isinstance(self.policy, ExhaustiveSolver):
-                    action = self.policy .solve(self.env)
+                    action = self.policy.solve(self.env)
                 elif isinstance(self.policy, DQNPolicy):
-                    action = self.policy.act(obs)
+                    action = self.policy.act(obs,training = True)
                 else:
                     raise ValueError(f"Unknown policy type: {type(self.policy)}")
                     

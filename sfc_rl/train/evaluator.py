@@ -74,14 +74,11 @@ class Evaluator:
                 while True : # self.env.current_request_idx < len(self.env.current_vn_requests):
                     # Select action
                     if isinstance(policy, DQNPolicy):
-                        #action = policy.act(obs, action_mask, training=False)
-                        pass
+                        action = policy.act(obs, training=False)
                     elif isinstance(policy, RandomPolicy):
                         action = policy.act(self.env)
                     elif isinstance(policy, ExhaustiveSolver):
                         action = policy.solve(self.env)
-                    elif isinstance(self.policy, DQNPolicy):
-                        action = self.policy.act(obs)
                     else:
                         raise ValueError(f"Unknown policy type: {type(policy)}")
                     

@@ -10,6 +10,8 @@ from ..env.sfc_env import SFCEnv, SFCEnvRevised
 class RandomPolicy:
     """Random policy that samples uniformly from valid actions."""
     
+    _class_name = "RandomPolicy"  # class attribute
+
     def __init__(self, seed: Optional[int] = None):
         """Initialize random policy.
         
@@ -42,3 +44,7 @@ class RandomPolicy:
 
 
 
+
+    @property
+    def name(self) -> str:
+        return self._class_name

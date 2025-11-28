@@ -20,6 +20,8 @@ class ExhaustiveSolver:
     - Returns the embedding with highest objective function value
     """
     
+    _class_name = "ExhaustiveSolver" 
+
     def __init__(self, max_embeddings: int = 10000, seed: Optional[int] = None):
         """Initialize exhaustive solver.
         
@@ -395,6 +397,9 @@ class ExhaustiveSolver:
         return True
 
 
+    @property
+    def name(self) -> str:
+        return self._class_name
 
 
 

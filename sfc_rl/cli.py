@@ -7,6 +7,7 @@ from datetime import datetime
 import torch
 
 import shutil
+import re 
 
 from .data.dataset_provider import DatasetProvider
 from .data.dataset_generator import Generator
@@ -203,13 +204,17 @@ def main(cfg: DictConfig) -> None:
         logger.info("training Skipped...")
 
     #------------------------------------- Load Best Model --------------------------------------
-    best_episode = 100
 
-    logger.info(f"Loading best model from episode {best_episode} ")
+    logger.info(f"Loading most recent model ")
 
-    checkpoint_path = output_dir / f"checkpoint_ep{best_episode + 1}.pt"  # +1 if your checkpoints are 1-indexed
+    checkpoint_files = list(output_dir.glob("checkpoint_ep*.pt"))
+    checkpoints = sorted(
+        checkpoint_files,
+        key=lambda x: int(re.search(r"checkpoint_ep(\d+)\.pt", x.name).group(1))
+        )    
+    
 
-    if checkpoint_path.exists():
+    if checkpoints:
         trained_policy = DQNPolicy(
             state_dim=policy.state_dim,
             action_dim=policy.action_dim,
@@ -217,12 +222,12 @@ def main(cfg: DictConfig) -> None:
             config=policy.config,
             device=policy.device
         )
-        trained_policy.load(str(checkpoint_path))
+        trained_policy.load(str(checkpoints[-1]))
         trained_policy.q_network.eval()
         trained_policy.target_network.eval()
-        logger.info(f"Successfully loaded best model from episode {best_episode}")
+        logger.info(f"Successfully loaded the most recent model")
     else:
-        logger.warning(f"Best model checkpoint {checkpoint_path} not found. Using latest.")
+        logger.warning(f"No checkpoints found. ")
         # Fallback to latest checkpoint or current policy
         checkpoint_files = list(output_dir.glob("checkpoint_ep*.pt"))
         if checkpoint_files:
