@@ -11,7 +11,7 @@ action:
 reward:
   name: "qoe_qos"
   penalty_failure: 10.0 # Penalty P for failed embeddings (Eq. 11 & paper text)
-  penalty_exponent: false #true # Whether to apply the exponential penalty Pen_rn^sfcic even on success
+  penalty_exponent: true #true # Whether to apply the exponential penalty Pen_rn^sfcic even on success
   penalty_exp_factor: 1.0 # Tuning factor for the exponential penalty calculation (internal use)
   penalty_weight: 1.0 # Weight multiplier for the exponential penalty term
   qoe_weight: 1.0 # Weight multiplier for the QoE_sfcic term

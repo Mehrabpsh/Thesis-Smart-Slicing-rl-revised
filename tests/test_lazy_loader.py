@@ -25,7 +25,7 @@ class TestLazyVNRequestList(unittest.TestCase):
         os.makedirs(self.v_nets_dir)
         
         # Create dummy requests
-        self.num_requests = 10
+        self.num_requests = 100
         for i in range(self.num_requests):
             data = {
                 'request_id': i,
@@ -88,11 +88,14 @@ class TestLazyVNRequestList(unittest.TestCase):
 
     def test_slicing(self):
         lazy_list = LazyVNRequestList(self.v_nets_dir)
-        sliced = lazy_list[2:5]
+        sliced = lazy_list[2:50]
         self.assertIsInstance(sliced, LazyVNRequestList)
-        self.assertEqual(len(sliced), 3)
+        self.assertEqual(len(sliced), 48)
         self.assertEqual(sliced[0].request_id, 2)
         self.assertEqual(sliced[2].request_id, 4)
+        print(len(sliced))
+        print(len(list(sliced)))
+
 
     def test_simulator_integration(self):
         sim = VNRequestSimulator.load_dataset(self.test_dir)

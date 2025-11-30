@@ -77,7 +77,6 @@ class MLPPolicyNetwork(nn.Module, PolicyNetwork):
         # Build layers
         layers = []
         input_dim = state_dim
-        print(isinstance(hidden_sizes, list))
         
         if isinstance(hidden_sizes, int):
             hidden_sizes = [hidden_sizes]

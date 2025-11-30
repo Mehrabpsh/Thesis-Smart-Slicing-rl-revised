@@ -1,4 +1,4 @@
-enabled: false #true
+enabled: false #true #false
 policies:
   - name: dqn
     type: dqn
@@ -20,3 +20,10 @@ report:
   tensorboard: false
   plots: true
 output_dir: output_eval
+dqn:
+  eps_start: ${model.dqn.eps_end}
+  eps_end: ${model.dqn.eps_end}
+  eps_decay_steps: 1
+  double: ${model.dqn.double}
+  dueling: ${model.dqn.dueling}
+  n_step: 1

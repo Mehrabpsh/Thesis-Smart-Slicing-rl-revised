@@ -74,7 +74,7 @@ class Evaluator:
                 while True : # self.env.current_request_idx < len(self.env.current_vn_requests):
                     # Select action
                     if isinstance(policy, DQNPolicy):
-                        action = policy.act(obs, training=False)
+                        action = policy.act(obs, training=True) #False)
                     elif isinstance(policy, RandomPolicy):
                         action = policy.act(self.env)
                     elif isinstance(policy, ExhaustiveSolver):

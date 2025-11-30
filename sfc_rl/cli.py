@@ -5,7 +5,9 @@ from omegaconf import DictConfig, OmegaConf, open_dict
 from pathlib import Path
 from datetime import datetime
 import torch
+from torch.utils.tensorboard import SummaryWriter  
 
+import time
 import shutil
 import re 
 
@@ -25,7 +27,7 @@ from .train.trainer import TrainerRevised
 from .train.evaluator import Evaluator
 from .utils.seed import set_seed
 from .utils.logging import setup_logger
-
+from .utils.tensorboard import launch_tensorboard
 #--------------------------------------------------------------------------------------------
 
 config_path = "./../config"
@@ -47,7 +49,6 @@ def main(cfg: DictConfig) -> None:
     # Create output directory
     output_dir = Path(f"{cfg.get('output_dir', 'outputs')}/{cfg.get('project_name', 'Ciriaa')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
     output_dir.mkdir(parents=True, exist_ok=True)
-    
     # Setup logger
     logger = setup_logger("sfc_rl_test_data", log_file=output_dir / "run.log")
     logger.info(f"Starting experiment with config:\n{OmegaConf.to_yaml(cfg)}")
@@ -76,9 +77,15 @@ def main(cfg: DictConfig) -> None:
                     cfg.v_sim_setting = cfg.data.get('v_sim_setting')
     
 
+
+
     # Create dataset provider
     dataset_provider = DatasetProvider(cfg, logger)
     cache_path = Path(cfg.data.v_sim_setting.get('cache_path', '.vnReqs_cache'))
+
+    if cache_path.exists() and cache_path.is_dir(): 
+        shutil.rmtree(cache_path)
+        logger.info(f"Cleaned and removed cache: {cache_path}")
 
     pn = dataset_provider.get_physical_network()
     vn_requests = dataset_provider.get_vn_requests()
@@ -143,9 +150,10 @@ def main(cfg: DictConfig) -> None:
     
 
 
+
     #------------------------------------- Policy --------------------------------
 
-
+    
     # Create policy
     model_cfg = cfg.model
     if model_cfg.type == "dqn":
@@ -181,6 +189,17 @@ def main(cfg: DictConfig) -> None:
 
     #------------------------------------- Train -----------------------------------------
     
+    tensorboard_use = False
+
+    if tensorboard_use:
+
+        tb_writer = SummaryWriter(log_dir=str(output_dir / "tensorboard"))
+        tb_process = launch_tensorboard(output_dir / "tensorboard")
+        logger.info("launching Tensorboard...")
+
+        time.sleep(5)  
+
+
     # Train
     train_cfg = cfg.train
     if train_cfg.get('train', True): #or getattr(train_cfg, 'train', True):
@@ -190,11 +209,18 @@ def main(cfg: DictConfig) -> None:
             policy=policy,
             config=train_cfg,
             output_dir=output_dir,
+            summarywriter=tb_writer if tensorboard_use else None,
             logger=logger,
+            tensorboard_use=tensorboard_use,
         )
         
         logger.info("Starting training...")
         results = trainer.train()
+
+        for i in results.keys():  
+            if 'mean_episode_length' in results[i]:
+                del results[i]['mean_episode_length']        
+        
         print(f'{'.\n' * 20}')
         logger.info(f"Training completed. Final metrics:")
         for episode, metric in results.items():
@@ -203,35 +229,24 @@ def main(cfg: DictConfig) -> None:
     else: 
         logger.info("training Skipped...")
 
-    #------------------------------------- Load Best Model --------------------------------------
+    #------------------------------------- Load Best Model and Evaluate --------------------------------------
 
-    logger.info(f"Loading most recent model ")
 
-    checkpoint_files = list(output_dir.glob("checkpoint_ep*.pt"))
-    checkpoints = sorted(
-        checkpoint_files,
-        key=lambda x: int(re.search(r"checkpoint_ep(\d+)\.pt", x.name).group(1))
-        )    
-    
+    eval_cfg = cfg.eval
 
-    if checkpoints:
-        trained_policy = DQNPolicy(
-            state_dim=policy.state_dim,
-            action_dim=policy.action_dim,
-            network=policy.q_network,
-            config=policy.config,
-            device=policy.device
-        )
-        trained_policy.load(str(checkpoints[-1]))
-        trained_policy.q_network.eval()
-        trained_policy.target_network.eval()
-        logger.info(f"Successfully loaded the most recent model")
-    else:
-        logger.warning(f"No checkpoints found. ")
-        # Fallback to latest checkpoint or current policy
+    if eval_cfg.get('enabled', True):
+
+        logger.info(f"Loading most recent model ")
+
         checkpoint_files = list(output_dir.glob("checkpoint_ep*.pt"))
-        if checkpoint_files:
-            latest_checkpoint = max(checkpoint_files, key=lambda x: int(x.stem.split('_ep')[-1]))
+        checkpoints = sorted(
+            checkpoint_files,
+            key=lambda x: int(re.search(r"checkpoint_ep(\d+)\.pt", x.name).group(1))
+            )   
+            
+        
+
+        if checkpoints:
             trained_policy = DQNPolicy(
                 state_dim=policy.state_dim,
                 action_dim=policy.action_dim,
@@ -239,21 +254,33 @@ def main(cfg: DictConfig) -> None:
                 config=policy.config,
                 device=policy.device
             )
-            trained_policy.load(str(latest_checkpoint))
+            trained_policy.load(str(checkpoints[-1]))
             trained_policy.q_network.eval()
             trained_policy.target_network.eval()
+            logger.info(f"Successfully loaded the most recent model")
         else:
-            trained_policy = policy
-            trained_policy.q_network.eval()
-            trained_policy.target_network.eval()
+            logger.warning(f"No checkpoints found. ")
+            # Fallback to latest checkpoint or current policy
+            checkpoint_files = list(output_dir.glob("checkpoint_ep*.pt"))
+            if checkpoint_files:
+                latest_checkpoint = max(checkpoint_files, key=lambda x: int(x.stem.split('_ep')[-1]))
+                trained_policy = DQNPolicy(
+                    state_dim=policy.state_dim,
+                    action_dim=policy.action_dim,
+                    network=policy.q_network,
+                    config=policy.config,
+                    device=policy.device
+                )
+                trained_policy.load(str(latest_checkpoint))
+                trained_policy.q_network.eval()
+                trained_policy.target_network.eval()
+            else:
+                trained_policy = policy
+                trained_policy.q_network.eval()
+                trained_policy.target_network.eval()
 
 
-        #------------------------------------- Evaluate --------------------------------------
-
-
-    eval_cfg = cfg.eval
-
-    if eval_cfg.get('enabled', True):
+        #-------------------- Evaluate ----------------------
 
         logger.info("Starting Evaluating...")
         evaluator = Evaluator(env,
@@ -277,24 +304,21 @@ def main(cfg: DictConfig) -> None:
         else:
             logger.info(f"Cache directory not found: {cache_path}")
 
+    if tensorboard_use:
+        if tb_process:
+            tb_process.terminate()
+            print("TensorBoard stopped.")
+
+
+main()
 
 
 
+#python -m sfc_rl.cli data.v_sim_setting.num_groups=15 model.dqn.eps_decay_steps=1500 project_name=after_hashemi3
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#Tasks to do:
+#1- verify DQN , go watch some videos tutorials and ... of dqn implementation 1h
+#2- use it in jupyter lab/ notebook (refactor its form if needed) 1-2h
+#3- run for 500 episodes or sth 3-4 h
+#4 - report to Hashemi 1h

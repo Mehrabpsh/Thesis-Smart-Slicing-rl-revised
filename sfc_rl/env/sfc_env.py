@@ -7,6 +7,7 @@ from omegaconf import DictConfig
 from logging import Logger
 
 from ..data.schemas import PhysicalNetwork, VNRequest
+from ..data.lazy_loader import LazyVNRequestList
 from .state_encoders import NormalizedStateEncoder, StateEncoder
 from .action_space import ActionSpace
 from .reward import RewardFn
@@ -22,7 +23,7 @@ class SFCEnv:
     def __init__(
         self,
         pn: PhysicalNetwork,
-        vn_requests: List[VNRequest],
+        vn_requests: LazyVNRequestList, #List[VNRequest],
         state_encoder: StateEncoder,
         action_space: ActionSpace,
         reward_fn: RewardFn,
@@ -413,7 +414,7 @@ class SFCEnvRevised:
     def __init__(
         self,
         pn: PhysicalNetwork,
-        vn_requests: List[VNRequest],
+        vn_requests: LazyVNRequestList,
         num_groups: int,
         #state_encoder: StateEncoder,
         state_encoder: NormalizedStateEncoder,
@@ -455,6 +456,8 @@ class SFCEnvRevised:
         self.episode_step_count: int = 0
         self._rng: Optional[np.random.Generator] = None
     
+        self.embedding_state = None #Union['success','fail', 'None']
+
     def reset(self,group_id:int, seed: Optional[int] = None) -> Tuple[np.ndarray, Dict]:
         """Reset environment to initial state.
         
@@ -479,11 +482,12 @@ class SFCEnvRevised:
         self.episode_step_count = 0
         self.group_id = group_id
         # Get initial observation
-        self.current_vn_requests = self.vn_requests[self.group_id*len(self.vn_requests)//self.num_groups:(self.group_id+1)*len(self.vn_requests)//self.num_groups]
+        self.current_vn_requests = self.vn_requests[self.group_id*(len(self.vn_requests)//self.num_groups):(self.group_id+1)*(len(self.vn_requests)//self.num_groups)]
+        print(f"vn_requests[{self.group_id*(len(self.vn_requests)//self.num_groups)}:{(self.group_id+1)*(len(self.vn_requests)//self.num_groups)}]")
+        self.current_vn_requests = list(self.current_vn_requests)
         self.max_residual_bw = float(np.max([link.available_bandwidth for link in self.pn.links]))
         obs = self._get_observation()
         info = self._get_info()
-        
         return obs, info
     
 
@@ -541,6 +545,7 @@ class SFCEnvRevised:
             reward = self.reward_fn.compute(
                 self.pn, current_request, None, None, False
             )
+            self.embedding_state = 'fail'
             self._move_to_next_request()
             obs = self._get_observation()
             info = self._get_info()
@@ -563,6 +568,7 @@ class SFCEnvRevised:
             reward = self.reward_fn.compute(
                 self.pn, current_request, None, None, False
             )
+            self.embedding_state = 'fail'
             self._move_to_next_request()
             obs = self._get_observation()
             info = self._get_info()
@@ -595,6 +601,7 @@ class SFCEnvRevised:
                     reward = self.reward_fn.compute(
                         self.pn, current_request, None, None, False
                     )
+                    self.embedding_state = 'fail'
                     self._move_to_next_request()
                     obs = self._get_observation()
                     info = self._get_info()
@@ -620,6 +627,7 @@ class SFCEnvRevised:
                     reward = self.reward_fn.compute(
                         self.pn, current_request, None, None, False
                     )
+                    self.embedding_state = 'fail'
                     self._move_to_next_request()
                     obs = self._get_observation()
                     info = self._get_info()
@@ -641,6 +649,7 @@ class SFCEnvRevised:
                 reward = self.reward_fn.compute(
                     self.pn, current_request, self.partial_embedding.copy(), self.path_embeddings.copy(), True
                 )
+                self.embedding_state = 'success'
                 self._move_to_next_request()
                 obs = self._get_observation()
                 info = self._get_info()
@@ -652,6 +661,7 @@ class SFCEnvRevised:
 
             else:
                 # Continue embedding
+                self.embedding_state = None
                 obs = self._get_observation()
                 info = self._get_info()
                 Terminated = self.current_request_idx >= len(self.current_vn_requests)
@@ -664,6 +674,7 @@ class SFCEnvRevised:
             reward = self.reward_fn.compute(
                 self.pn, current_request, None, None, False
             )
+            self.embedding_state = 'rejected'
             self._move_to_next_request()
             obs = self._get_observation()
             info = self._get_info()
@@ -748,6 +759,7 @@ class SFCEnvRevised:
             "step_count": self.step_count,
             "episode_step_count": self.episode_step_count,
             "partial_embedding": self.partial_embedding.copy(),
+            'embedding_state': self.embedding_state,
         }
     
     def _move_to_next_request(self) -> None:
@@ -775,7 +787,6 @@ class SFCEnvRevised:
         self.path_embeddings = {}
         self.episode_step_count = 0
         self.max_residual_bw = float(np.max([link.available_bandwidth for link in self.pn.links]))
-
 
         """ elif self.current_request_idx >= len(self.current_vn_requests):
 

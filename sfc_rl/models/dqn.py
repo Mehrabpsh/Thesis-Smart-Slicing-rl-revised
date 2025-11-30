@@ -21,7 +21,7 @@ class DQNPolicy:
         state_dim: int,
         action_dim: int,
         network: PolicyNetwork,
-        config: DictConfig,
+        config: DictConfig,  
         device: Optional[torch.device] = None,
     ):
         """Initialize DQN policy.
@@ -37,18 +37,21 @@ class DQNPolicy:
         self.action_dim = action_dim
         self.config = config
         self.device = device if device else torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.buffer_size = config.dqn.buffer_size
+        
         # Networks
         self.q_network = network.to(self.device)
+        #if train_mode:
         self.target_network = self._create_target_network()
         self.target_network.to(self.device)
         self.target_network.load_state_dict(self.q_network.state_dict())
         self.target_network.eval()
-        
+        self.buffer_size = config.dqn.buffer_size
+
         # Replay buffer
         self.replay_buffer = ReplayBuffer(capacity=self.buffer_size)
         
         # Optimizer
+        
         optimizer_name = config.optimizer.name.lower()
         lr = config.optimizer.lr
         if optimizer_name == "adam":
@@ -67,10 +70,12 @@ class DQNPolicy:
         self.target_update_freq = config.dqn.target_update
         self.double_dqn = config.dqn.get("double", False)
         self.n_step = config.dqn.get("n_step", 1)
-        
+
         # Training state
         self.step_count = 0
         self.epsilon = self.eps_start
+      
+    
     
     def _create_target_network(self) -> PolicyNetwork:
         """Create target network (copy of Q-network)."""
@@ -147,17 +152,6 @@ class DQNPolicy:
         q_value = q_values.gather(1, actions.unsqueeze(1)).squeeze(1)
         
 
-
-
-        """   # For Debuging purposes
-        print(f"Device info:")
-        print(f"  self.device: {self.device}")
-        print(f"  q_network device: {next(self.q_network.parameters()).device}")
-        print(f"  target_network device: {next(self.target_network.parameters()).device}")
-        print(f"  next_states device: {next_states.device}")
-        print(f"  states device: {states.device}")"""
-
-
         # Next Q values
         with torch.no_grad():
             if self.double_dqn:
@@ -193,7 +187,9 @@ class DQNPolicy:
             self.target_network.load_state_dict(self.q_network.state_dict())
         
         return loss.item()
-    
+
+           
+        
     def save(self, path: str) -> None:
         """Save policy to file.
         
