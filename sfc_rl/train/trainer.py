@@ -258,7 +258,8 @@ class TrainerRevised:
         self.config = config
         self.output_dir = output_dir
         self.logger = logger or setup_logger("trainer")
-        
+        self.run_in_notebook = config.run_in_notebook
+
         self.episodes = config.episodes
         self.max_steps_per_episode = config.max_steps_per_episode
         self.log_interval = config.get("log_interval", 100)
@@ -381,7 +382,7 @@ class TrainerRevised:
                     f"Avg Reward: {avg_reward:.4f}, "
                     f"Avg Loss: {avg_loss:.4f}"
                 )
-                plot_training_curves(rewards=[Episodes_Metrics[i]['qoe'] for i in Episodes_Metrics.keys()], losses= losses,output_dir = self.output_dir / "training plots", filename=f"training_curve_till_episode{episode}.png", window=5,episode=episode)
+                plot_training_curves(rewards=[Episodes_Metrics[i]['qoe'] for i in Episodes_Metrics.keys()], losses= losses,output_dir = self.output_dir / "training plots", filename=f"training_curve_till_episode{episode}.png", window=5,episode=episode,run_in_notebook=self.run_in_notebook)
 
             
             # Save checkpoint

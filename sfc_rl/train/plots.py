@@ -59,7 +59,8 @@ def plot_training_curves(
     """
     output_dir.mkdir(parents=True, exist_ok=True)
     episode = kwargs.get('episode', None)
-    
+    notebook = kwargs.get('run_in_notebook', False)
+
     if len(rewards) == 0 and len(losses) == 0:
         return
     
@@ -110,4 +111,8 @@ def plot_training_curves(
     
     plt.tight_layout()
     plt.savefig(output_dir / filename, dpi=150, bbox_inches='tight')
+    
+    if notebook:
+        plt.show() 
+    
     plt.close()
