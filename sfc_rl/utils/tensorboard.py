@@ -42,6 +42,6 @@ def launch_tensorboard(log_dir: Path, port: int = 6006, wait_seconds: int = 5):
     
     # Start in background thread
     #thread = threading.Thread(target=start_tb, daemon=True)
-    # thread.start()
+    #thread.start()
     return start_tb()
     #return thread

@@ -37,7 +37,8 @@ class LazyVNRequestList:
                 for f in os.listdir(self.directory) 
                 if f.endswith('.json')
             ])
-            
+
+    
     def __len__(self) -> int:
         return len(self.file_paths)
     

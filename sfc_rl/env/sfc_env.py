@@ -443,6 +443,8 @@ class SFCEnvRevised:
         self.qoe_model = qoe_model
         self.max_steps_per_request = max_steps_per_request
 
+        self.reqs_permutation_seed: Optional[int] = None
+        
         self.max_residual_bw : float = 0
         
         # State
@@ -485,6 +487,10 @@ class SFCEnvRevised:
         self.current_vn_requests = self.vn_requests[self.group_id*(len(self.vn_requests)//self.num_groups):(self.group_id+1)*(len(self.vn_requests)//self.num_groups)]
         print(f"vn_requests[{self.group_id*(len(self.vn_requests)//self.num_groups)}:{(self.group_id+1)*(len(self.vn_requests)//self.num_groups)}]")
         self.current_vn_requests = list(self.current_vn_requests)
+        if not (self.reqs_permutation_seed ==None): 
+            rng = np.random.RandomState(self.reqs_permutation_seed)
+            rng.shuffle(self.current_vn_requests)
+            
         self.max_residual_bw = float(np.max([link.available_bandwidth for link in self.pn.links]))
         obs = self._get_observation()
         info = self._get_info()
@@ -832,5 +838,28 @@ class SFCEnvRevised:
                 return None
         except Exception:
             return None
+
+
+    def _index_randommap_simple(self, index:int, range_tuple: tuple, seed: Optional[int]=None):
+        """Simple version without caching"""
+        lower, upper = range_tuple
+        
+        if not (lower <= index < upper):
+            raise ValueError(f"Index {index} not in range [{lower}, {upper})")
+        
+        n = upper - lower
+        if n <= 1 or seed==None:
+            return index
+        
+        # Generate permutation on the fly
+        indices = list(range(n))
+        rng = np.random.RandomState(seed)  # Creates seeded NumPy RNG
+        rng.shuffle(indices)  # Shuffles in-place    
+    
+        print(indices)
+        return indices[index - lower] + lower
+    
+
+
 
 

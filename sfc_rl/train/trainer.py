@@ -396,4 +396,4 @@ class TrainerRevised:
         if self.tensorboard_use:
             self.tb_writer.close()
         
-        return Episodes_Metrics
+        return Episodes_Metrics, losses
