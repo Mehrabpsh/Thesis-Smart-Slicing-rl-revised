@@ -68,7 +68,7 @@ def plot_training_curves(
     
     # Plot 1: Rewards
     if len(rewards) > 0:
-        axes[0].plot(rewards, alpha=0.3, label="Raw", color="blue")
+        axes[0].plot(list(range(1, len(rewards) + 1)), rewards, alpha=0.3, label="Raw", color="blue")
         
         # Moving average for rewards
         if len(rewards) >= window:
