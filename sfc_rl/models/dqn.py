@@ -221,3 +221,73 @@ class DQNPolicy:
     @property
     def name(self) -> str:
         return self._class_name
+
+
+    def refresh(self) -> None:
+        """Reset the DQN to its initial state (as if __init__ was called)."""
+        # Reinitialize network weights
+        self.q_network.apply(self._init_weights)
+        
+        # Reset target network
+        self.target_network = self._create_target_network()
+        self.target_network.to(self.device)
+        self.target_network.load_state_dict(self.q_network.state_dict())
+        self.target_network.eval()
+        
+        # Clear replay buffer
+        self.replay_buffer = ReplayBuffer(capacity=self.buffer_size)
+        
+        # Reset optimizer
+        optimizer_name = self.config.optimizer.name.lower()
+        lr = self.config.optimizer.lr
+        if optimizer_name == "adam":
+            self.optimizer = optim.Adam(self.q_network.parameters(), lr=lr)
+        elif optimizer_name == "sgd":
+            self.optimizer = optim.SGD(self.q_network.parameters(), lr=lr, momentum=0.9)
+        else:
+            raise ValueError(f"Unknown optimizer: {optimizer_name}")
+        
+        # Reset training state
+        self.step_count = 0
+        self.epsilon = self.eps_start
+
+    
+    def _init_weights(self, module: nn.Module) -> None:
+        """Initialize weights for neural network layers."""
+        # Common layer types in nn.Sequential
+        if isinstance(module, nn.Linear):
+            # Xavier/Glorot initialization for linear layers
+            torch.nn.init.xavier_uniform_(module.weight, gain=1.0)
+            if module.bias is not None:
+                torch.nn.init.zeros_(module.bias)
+                
+        elif isinstance(module, nn.Conv1d):
+            torch.nn.init.kaiming_normal_(module.weight, mode='fan_out', nonlinearity='relu')
+            if module.bias is not None:
+                torch.nn.init.zeros_(module.bias)
+        elif isinstance(module, nn.Conv2d):
+            torch.nn.init.kaiming_normal_(module.weight, mode='fan_out', nonlinearity='relu')
+            if module.bias is not None:
+                torch.nn.init.zeros_(module.bias)
+        elif isinstance(module, nn.Conv3d):
+            torch.nn.init.kaiming_normal_(module.weight, mode='fan_out', nonlinearity='relu')
+            if module.bias is not None:
+                torch.nn.init.zeros_(module.bias)
+                
+        elif isinstance(module, nn.BatchNorm1d):
+            torch.nn.init.ones_(module.weight)
+            torch.nn.init.zeros_(module.bias)
+        elif isinstance(module, nn.BatchNorm2d):
+            torch.nn.init.ones_(module.weight)
+            torch.nn.init.zeros_(module.bias)
+        elif isinstance(module, nn.BatchNorm3d):
+            torch.nn.init.ones_(module.weight)
+            torch.nn.init.zeros_(module.bias)
+            
+        elif isinstance(module, nn.LayerNorm):
+            torch.nn.init.ones_(module.weight)
+            torch.nn.init.zeros_(module.bias)
+            
+        elif isinstance(module, nn.Embedding):
+            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+            
