@@ -443,7 +443,7 @@ class SFCEnvRevised:
         self.qoe_model = qoe_model
         self.max_steps_per_request = max_steps_per_request
 
-        self.reqs_permutation_seed: Optional[int] = None
+        self.grps_permutation_seed: Optional[int] = None
         
         self.max_residual_bw : float = 0
         
@@ -482,14 +482,16 @@ class SFCEnvRevised:
         self.path_embeddings = {}
         self.step_count = 0
         self.episode_step_count = 0
-        self.group_id = group_id
+        self.group_id = self._index_randommap_simple(group_id,range_tuple = (0, self.num_groups), seed = self.grps_permutation_seed)
+        print(f'group id {group_id} --> group id {self.group_id }')
         # Get initial observation
         self.current_vn_requests = self.vn_requests[self.group_id*(len(self.vn_requests)//self.num_groups):(self.group_id+1)*(len(self.vn_requests)//self.num_groups)]
         print(f"vn_requests[{self.group_id*(len(self.vn_requests)//self.num_groups)}:{(self.group_id+1)*(len(self.vn_requests)//self.num_groups)}]")
         self.current_vn_requests = list(self.current_vn_requests)
-        if not (self.reqs_permutation_seed ==None): 
-            rng = np.random.RandomState(self.reqs_permutation_seed)
-            rng.shuffle(self.current_vn_requests)
+        
+        #if not (self.grps_permutation_seed ==None): 
+            #rng = np.random.RandomState(self.grps_permutation_seed)
+            #rng.shuffle(self.current_vn_requests)
             
         self.max_residual_bw = float(np.max([link.available_bandwidth for link in self.pn.links]))
         obs = self._get_observation()
