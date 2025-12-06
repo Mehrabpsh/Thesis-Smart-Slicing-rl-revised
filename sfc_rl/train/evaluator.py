@@ -56,9 +56,9 @@ class Evaluator:
         all_results = {}
         all_results_raw = {}
         acceptance_ratios  = {}
-        qoes = {}
         rewards = {}
-        
+        qoes = {}
+
         for policy_name, policy in self.policies.items():
             self.logger.info(f"Evaluating policy: {policy_name}")
             Episodes_Metrics = {}
@@ -109,11 +109,17 @@ class Evaluator:
 
                     
                     if terminated: # if all the request of the current group are hanlded
-                        Episodes_Metrics[run] = metrics.request_metrics
-                        if run not in acceptance_ratios:
-                           acceptance_ratios[run] = {}    
-                        acceptance_ratios[run][policy_name] = metrics.accepted_requests / metrics.total_requests
-                        #Episodes_Metrics[run] = metrics.compute()
+                        Episodes_Metrics[run] = metrics.request_metrics # to calculate qoe, i need it 
+                        
+                        if policy_name not in acceptance_ratios:
+                           acceptance_ratios[policy_name] = {}    
+                        acceptance_ratios[policy_name][run] = metrics.accepted_requests / metrics.total_requests
+
+             
+                        if policy_name not in rewards:
+                           rewards[policy_name] = {}    
+                        rewards[policy_name][run] = np.mean(metrics.episode_rewards)
+                        
                         metrics.reset()
                         break
 
@@ -132,113 +138,108 @@ class Evaluator:
 
             all_results_raw[policy_name] =  Episodes_Metrics
 
-        for episode , (exh_dicts, rand_dicts) in enumerate(zip(all_results_raw['exhaustive'].values(), all_results_raw['random'].values())):
-            num = 0 
-            qoe_random = 0
-            qoe_exh = 0
-            reward_random = 0
-            reward_exh = 0
-            for exh_dict, rand_dict in zip(exh_dicts, rand_dicts):
-                reward_random =+ random_dict['reward']
-                reward_exh =+ random_dict['reward']
-                if exh_dict['accepted']:
-                    qoe_random =+ random_dict['reward']
-                    qoe_exh =+ random_dict['reward']
-                    num +=1
-            if num > 0:        
-                qoes[episode] = {'random':qoe_random/num,'exhaustive':qoe_exh/num}
-            rewards[episode] =  {'random':qoe_random/len(exh_dicts),'exhaustive':qoe_exh/len(exh_dicts)}
-            
+        
+        # For each episode, iterate over all policies' results in parallel
+        for episode, policy_results in enumerate(zip(*[list(all_results_raw[policy_name].values()) for policy_name in self.policies.keys()])):
+            # policy_results is a tuple where each element corresponds to one policy's result dict for this episode
+            policy_names = list(self.policies.keys())
+            total_rewards = {name: 0.0 for name in policy_names}
+            accepted_counts = {name: 0 for name in policy_names}
+        
+            # Iterate over each policy's result dict for this episode
+            for policy_idx, result_dict in enumerate(policy_results):
+                policy_name = policy_names[policy_idx]
+                if result_dict['accepted']:
+                    total_rewards[policy_name] += result_dict['reward']
+                    accepted_counts[policy_name] += 1
+        
+            # Compute averages only for policies with at least one accepted request
+            for name in policy_names:
+                qoes[name] = {}
+                if accepted_counts[name] > 0:
+                    qoes[name][episode] = total_rewards[name] / accepted_counts[name]
+                else:
+                    qoes[name][episode]= 0.0  # or None, depending on how you want to handle no accepted cases
+                    
              #if random_dict['accepted']:
               #  qoe_random =+ random_dict['reward']
                # qoe_exh =+ random_dict['reward']
 
 
+
+        #all_results[policy]= {'acceptance_ratio': acceptance_ratios[policy],'qoe':qoe[policy],'reward':rewards[policy]} for policy in self.policies.keys()
+        
         #-------------------- plot qoe per episode ------------------
 
+      
+        plots_dir = output_dir  
         plots_dir.mkdir(parents=True, exist_ok=True)
-  
-        fig, axes = plt.subplots(1, 1, figsize=(12, 5))
-    
-        x_axis = np.linspace(0,len(qoes.keys()),len(qoes.keys()))
-
-        axes[0].plot(x_axis, [qoes[i]['random'] for i in qoes.keys()], alpha=0.3, label="Raw", color="read")
-        axes[0].plot(x_axis, [qoes[i]['exhaustive'] for i in qoes.keys()], alpha=0.3, label="Raw", color="green")
-
         
-        axes[1].set_xlabel("Episode")
-        axes[1].set_ylabel("qoes")
-        axes[1].set_title("Qoes Progress")
-        axes[1].legend()
-        axes[1].grid(True, alpha=0.3)
-
-        plt.tight_layout()
-        plt.savefig(output_dir / "qoes_comparision_in_episdoes.png", dpi=150, bbox_inches='tight')
+        policy_names = list(self.policies.keys())
         
-        plt.show() 
-        plt.close()
-
+        # ========== 1. QoE over episodes (time series) ==========
+        fig, ax = plt.subplots(1, 1, figsize=(12, 5))
         
+        episodes = sorted(qoes.keys())  
+        x_axis = np.arange(len(episodes))  
+        for policy in policy_names:
+            y_vals = [qoes[policy][ep] for ep in episodes]
+            ax.plot(x_axis, y_vals, label=policy, alpha=0.7, linewidth=1.5)
         
-        metrics_dict = {}
-
-        
-        #----------------------
-
-        # # Save results
-        # self.output_dir.mkdir(parents=True, exist_ok=True)
-        # save_json(all_results, self.output_dir / "evaluation_results.json")
-        
-        # # Generate plots
-        # if self.config.get("report", {}).get("plots", True):
-        #     plots_dir = self.output_dir / "plots"
-        #     plots_dir.mkdir(parents=True, exist_ok=True)
-        #     plot_metrics(all_results, plots_dir, "metrics_comparison.png")
-        
-        #-------------------- Bar Plot -----------------------------
-        # fig, axes = plt.subplots(1, len(self.metrics_to_compute), figsize=(5 * len(metrics), 5))
-        # if len(metrics) == 1:
-        #     axes = [axes]
-        
-        # for idx, metric in enumerate(metrics):
-        #     values = [metrics_dict[policy].get(metric, 0.0) for policy in policies]
-        #     axes[idx].bar(policies, values)
-        #     axes[idx].set_title(metric.replace("_", " ").title())
-        #     axes[idx].set_ylabel(metric.replace("_", " ").title())
-        #     axes[idx].tick_params(axis='x', rotation=45)
-        
-        # plt.tight_layout()
-        # plt.savefig(output_dir / filename, dpi=150, bbox_inches='tight')
-        # plt.close()
-        fig, axes = plt.subplots(1, 2, figsize=(5 * len(metrics), 5))
-    
-        policies = ['random', 'exhaust']
-        
-        values1 = [np.mean([ acceptance_ratios[i]['random'] for i in acceptance_ratios.keys()]),  np.mean([ acceptance_ratios[i]['exhaust'] for i in acceptance_ratios.keys()])]
-        axes[0].bar(policies, values1)
-        axes[0].set_title('episodes')
-        axes[0].set_ylabel('qoe')
-        axes[0].tick_params(axis='x', rotation=45)
-
-
-
-        values2 = [np.mean([ rewards[i]['random'] for i in rewards.keys()]),  np.mean([ rewards[i]['exhaust'] for i in rewards.keys()])]
-        axes[0].bar(policies, values2)
-        axes[0].set_title('episodes')
-        axes[0].set_ylabel('qoe')
-        axes[0].tick_params(axis='x', rotation=45)
+        ax.set_xlabel("Episode")
+        ax.set_ylabel("Average QoE (per accepted request)")
+        ax.set_title("QoE Progress Over Episodes")
+        ax.legend()
+        ax.grid(True, alpha=0.3)
         
         plt.tight_layout()
-        plt.savefig(output_dir / 'metrics_comparison.png', dpi=150, bbox_inches='tight')
+        plt.savefig(plots_dir / "qoes_comparison_in_episodes.png", dpi=150, bbox_inches='tight')
         plt.show()
         plt.close()
 
 
-        # # Save CSV
-        # if self.config.get("report", {}).get("csv", True):
-        #     import pandas as pd
-        #     df = pd.DataFrame(all_results).T
-        #     df.to_csv(self.output_dir / "evaluation_results.csv")
         
-        #return all_results
+        
+   
+        # ========== 2. Bar plots: mean acceptance ratio & mean reward ==========
+        
+        
+        
+        mean_acceptance = {
+            policy: np.mean([acceptance_ratios[policy][ep] for ep in acceptance_ratios[policy].keys()])
+            for policy in policy_names
+        }
+        mean_reward = {
+            policy: np.mean([rewards[policy][ep] for ep in rewards[policy].keys()])
+            for policy in policy_names
+        }
+        
+        # Create bar plots
+        fig, axes = plt.subplots(1, 2, figsize=(5 * 2, 5))  # 2 plots side by side
+        
+        # Acceptance ratio
+        axes[0].bar(policy_names, [mean_acceptance[p] for p in policy_names])
+        axes[0].set_title('Mean Acceptance Ratio')
+        axes[0].set_ylabel('Acceptance Ratio')
+        axes[0].tick_params(axis='x', rotation=45)
+        
+        # Mean reward
+        axes[1].bar(policy_names, [mean_reward[p] for p in policy_names])
+        axes[1].set_title('Mean Reward')
+        axes[1].set_ylabel('Reward')
+        axes[1].tick_params(axis='x', rotation=45)
+        
+        plt.tight_layout()
+        plt.savefig(plots_dir / 'metrics_comparison.png', dpi=150, bbox_inches='tight')
+        plt.show()
+        plt.close()
+
+
+        # Save CSV
+        if self.config.get("report", {}).get("csv", True):
+            import pandas as pd
+            df = pd.DataFrame({'model':[policy in policy_names],'acceptance_ratio':[mean_acceptance[policy] for policy in policy_names],'reward':[mean_reward[policy] for policy in  policy_names]}).T
+            df.to_csv(self.output_dir / "evaluation_results.csv")
+        
+        return all_results
 
