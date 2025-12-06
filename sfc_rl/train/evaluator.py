@@ -132,7 +132,7 @@ class Evaluator:
 
             all_results_raw[policy_name] =  Episodes_Metrics
 
-        for episode , (exh_dicts, rand_dicts) in enumerate(zip(all_results_raw['exhaust'].values(), all_results_raw['random'].values())):
+        for episode , (exh_dicts, rand_dicts) in enumerate(zip(all_results_raw['exhaustive'].values(), all_results_raw['random'].values())):
             num = 0 
             qoe_random = 0
             qoe_exh = 0
@@ -163,7 +163,7 @@ class Evaluator:
         x_axis = np.linspace(0,len(qoes.keys()),len(qoes.keys()))
 
         axes[0].plot(x_axis, [qoes[i]['random'] for i in qoes.keys()], alpha=0.3, label="Raw", color="read")
-        axes[0].plot(x_axis, [qoes[i]['exhaust'] for i in qoes.keys()], alpha=0.3, label="Raw", color="green")
+        axes[0].plot(x_axis, [qoes[i]['exhaustive'] for i in qoes.keys()], alpha=0.3, label="Raw", color="green")
 
         
         axes[1].set_xlabel("Episode")
