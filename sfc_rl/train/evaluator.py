@@ -125,16 +125,6 @@ class Evaluator:
 
 
                     obs = next_obs
-      
-            
-            # # Average across runs
-            # avg_metrics = {}
-            # for metric in self.metrics_to_compute:
-            #     values = [r.get(metric, 0.0) for r in Episodes_Metrics.values()]
-            #     avg_metrics[metric] = np.mean(values)
-            #     avg_metrics[f"{metric}_std"] = np.std(values)
-            
-            # all_results[policy_name] = avg_metrics
 
             all_results_raw[policy_name] =  Episodes_Metrics
 
@@ -149,8 +139,8 @@ class Evaluator:
             # Iterate over each policy's result dict for this episode
             for policy_idx, result_dict in enumerate(policy_results):
                 policy_name = policy_names[policy_idx]
-                if result_dict['accepted']:
-                    total_rewards[policy_name] += result_dict['reward']
+                if result_dict[episode]['accepted']:
+                    total_rewards[policy_name] += result_dict[episode]['reward']
                     accepted_counts[policy_name] += 1
         
             # Compute averages only for policies with at least one accepted request
@@ -161,18 +151,19 @@ class Evaluator:
                 else:
                     qoes[name][episode]= 0.0  # or None, depending on how you want to handle no accepted cases
                     
-             #if random_dict['accepted']:
-              #  qoe_random =+ random_dict['reward']
-               # qoe_exh =+ random_dict['reward']
-
+    
+        print('reward:',rewards)
+        print('qoe:',qoes)
+        print('accp:',acceptance_ratios)
 
 
         #all_results[policy]= {'acceptance_ratio': acceptance_ratios[policy],'qoe':qoe[policy],'reward':rewards[policy]} for policy in self.policies.keys()
         
         #-------------------- plot qoe per episode ------------------
 
-      
-        plots_dir = output_dir  
+        import matplotlib.pyplot as plt 
+        
+        plots_dir = self.output_dir   
         plots_dir.mkdir(parents=True, exist_ok=True)
         
         policy_names = list(self.policies.keys())
@@ -180,10 +171,11 @@ class Evaluator:
         # ========== 1. QoE over episodes (time series) ==========
         fig, ax = plt.subplots(1, 1, figsize=(12, 5))
         
-        episodes = sorted(qoes.keys())  
-        x_axis = np.arange(len(episodes))  
+        num_episodes = len(qoes[list(self.policies.keys())[0]])  
+
+        x_axis = range(1,num_episodes+1)  
         for policy in policy_names:
-            y_vals = [qoes[policy][ep] for ep in episodes]
+            y_vals = list(qoes[policy].values())
             ax.plot(x_axis, y_vals, label=policy, alpha=0.7, linewidth=1.5)
         
         ax.set_xlabel("Episode")
@@ -235,11 +227,26 @@ class Evaluator:
         plt.close()
 
 
-        # Save CSV
+        # # Save CSV
+        # if self.config.get("report", {}).get("csv", True):
+        #     import pandas as pd
+        #     df = pd.DataFrame({'model':[policy in policy_names],'acceptance_ratio':[mean_acceptance[policy] for policy in policy_names],'reward':[mean_reward[policy] for policy in  policy_names]}).T
+        #     df.to_csv(self.output_dir / "evaluation_results.csv")
+        
+        #return all_results
+
         if self.config.get("report", {}).get("csv", True):
             import pandas as pd
-            df = pd.DataFrame({'model':[policy in policy_names],'acceptance_ratio':[mean_acceptance[policy] for policy in policy_names],'reward':[mean_reward[policy] for policy in  policy_names]}).T
-            df.to_csv(self.output_dir / "evaluation_results.csv")
-        
-        return all_results
-
+            
+            # Prepare data for DataFrame
+            data = []
+            for policy in policy_names:
+                data.append({
+                    'model': policy,
+                    'acceptance_ratio': mean_acceptance.get(policy, 0.0),
+                    'reward': mean_reward.get(policy, 0.0)
+                })
+            
+            df = pd.DataFrame(data)
+            df.to_csv(self.output_dir / "evaluation_results.csv", index=False)
+            self.logger.info(f"CSV report saved to {self.output_dir / 'evaluation_results.csv'}")
