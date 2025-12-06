@@ -22,7 +22,7 @@ def plot_metrics(
     output_dir.mkdir(parents=True, exist_ok=True)
     
     policies = list(metrics_dict.keys())
-    metrics = ["acceptance_ratio", "qoe", "response_time"]
+    metrics = ["acceptance_ratio", "qoe"#, "response_time"]
     
     fig, axes = plt.subplots(1, len(metrics), figsize=(5 * len(metrics), 5))
     if len(metrics) == 1:
@@ -64,25 +64,25 @@ def plot_training_curves(
     if len(rewards) == 0 and len(losses) == 0:
         return
     
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    fig, axes = plt.subplots(1, 1, figsize=(12, 5))
     
-    # Plot 1: Rewards
-    if len(rewards) > 0:
-        axes[0].plot(list(range(1, len(rewards) + 1)), rewards, alpha=0.3, label="Raw", color="blue")
+    # # Plot 1: Rewards
+    # if len(rewards) > 0:
+    #     axes[0].plot(list(range(1, len(rewards) + 1)), rewards, alpha=0.3, label="Raw", color="blue")
         
-        # Moving average for rewards
-        if len(rewards) >= window:
-            moving_avg = pd.Series(rewards).rolling(window=window).mean()
-            axes[0].plot(moving_avg, label=f"Moving Avg ({window})", color="red", linewidth=2)
+    #     # Moving average for rewards
+    #     if len(rewards) >= window:
+    #         moving_avg = pd.Series(rewards).rolling(window=window).mean()
+    #         axes[0].plot(moving_avg, label=f"Moving Avg ({window})", color="red", linewidth=2)
         
-        axes[0].set_xlabel("Episode")
-        axes[0].set_ylabel("qoe")
-        axes[0].set_title("qoe Progress")
-        axes[0].legend()
-        axes[0].grid(True, alpha=0.3)
-    else:
-        axes[0].text(0.5, 0.5, "No reward data", ha='center', va='center', transform=axes[0].transAxes)
-        axes[0].set_title("qoe Progress")
+    #     axes[0].set_xlabel("Episode")
+    #     axes[0].set_ylabel("qoe")
+    #     axes[0].set_title("qoe Progress")
+    #     axes[0].legend()
+    #     axes[0].grid(True, alpha=0.3)
+    # else:
+    #     axes[0].text(0.5, 0.5, "No reward data", ha='center', va='center', transform=axes[0].transAxes)
+    #     axes[0].set_title("qoe Progress")
     
     # Plot 2: Losses
     if len(losses) > 0:
@@ -90,7 +90,6 @@ def plot_training_curves(
         #x_axis = range(len(losses)//100)
         
         x_axis = np.linspace(0,episode,len(losses))
-
 
         axes[1].plot(x_axis, losses, alpha=0.3, label="Raw", color="green")
         

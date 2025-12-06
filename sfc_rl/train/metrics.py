@@ -20,13 +20,13 @@ class Metrics:
     rejected_requests: int = 0
     episode_rewards: List[float] = field(default_factory=list)
     request_metrics: List[Dict] = field(default_factory=list)
+    success_indices : Dict[int,bool] = {}
     
     def update(
         self,
         request: VNRequest,
         accepted: bool,
         response_time: float,
-        qoe: Optional[float] = None,
         reward: Optional[float] = None,
     ) -> None:
         """Update metrics with a request result.
@@ -45,8 +45,6 @@ class Metrics:
             self.rejected_requests += 1
         
         self.response_time += response_time
-        if qoe is not None:
-            self.qoe += qoe
         if reward is not None:
             self.episode_rewards.append(reward)
         
@@ -54,7 +52,6 @@ class Metrics:
             "request_id": request.request_id,
             "accepted": accepted,
             #"response_time": response_time,
-            "qoe": qoe,
             "reward": reward,
         })
     
@@ -77,24 +74,24 @@ class Metrics:
         avg_response_time = self.response_time / self.total_requests
         avg_qoe = self.qoe / self.accepted_requests if self.accepted_requests > 0 else 0.0
         mean_reward = np.mean(self.episode_rewards) if self.episode_rewards else 0.0
-        mean_episode_length = np.mean(self.total_requests) if self.total_requests else 0.0
         
         return {
             "acceptance_ratio": acceptance_ratio,
             "response_time": avg_response_time,
             "qoe": float(avg_qoe),
             "mean_reward": float(mean_reward),
-            "mean_episode_length": float(mean_episode_length),
         }
     
     def reset(self) -> None:
         """Reset metrics."""
         self.acceptance_ratio = 0.0
         self.response_time = 0.0
-        self.qoe = 0.0
+        #self.qoe = 0.0
         self.total_requests = 0
         self.accepted_requests = 0
         self.rejected_requests = 0
+        self.success_indices = {}
+
         #self.episode_rewards = []
         #self.episode_lengths = []
         #self.request_metrics = []
