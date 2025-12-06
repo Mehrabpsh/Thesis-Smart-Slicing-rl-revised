@@ -110,9 +110,9 @@ class Evaluator:
                     
                     if terminated: # if all the request of the current group are hanlded
                         Episodes_Metrics[run] = metrics.request_metrics
-                        if episode not in acceptance_ratios:
-                           acceptance_ratios[episdoe] = {}    
-                        acceptance_ratios[episdoe][policy_name] = metrics.accepted_requests / metrics.total_requests
+                        if run not in acceptance_ratios:
+                           acceptance_ratios[run] = {}    
+                        acceptance_ratios[run][policy_name] = metrics.accepted_requests / metrics.total_requests
                         #Episodes_Metrics[run] = metrics.compute()
                         metrics.reset()
                         break

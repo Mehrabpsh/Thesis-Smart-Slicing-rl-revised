@@ -22,7 +22,7 @@ def plot_metrics(
     output_dir.mkdir(parents=True, exist_ok=True)
     
     policies = list(metrics_dict.keys())
-    metrics = ["acceptance_ratio", "qoe"#, "response_time"]
+    metrics = ["acceptance_ratio", "qoe"]#, "response_time"]
     
     fig, axes = plt.subplots(1, len(metrics), figsize=(5 * len(metrics), 5))
     if len(metrics) == 1:
