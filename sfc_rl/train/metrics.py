@@ -93,7 +93,7 @@ class Metrics:
 
         #self.episode_rewards = []
         #self.episode_lengths = []
-        #self.request_metrics = []
+        self.request_metrics = []
 
 
 

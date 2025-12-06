@@ -6,6 +6,7 @@ import numpy as np
 from omegaconf import DictConfig
 from tqdm import tqdm
 
+
 from ..env.sfc_env import SFCEnv, SFCEnvRevised
 from ..models.dqn import DQNPolicy
 from ..baselines.random_policy import RandomPolicy
@@ -58,6 +59,7 @@ class Evaluator:
         acceptance_ratios  = {}
         rewards = {}
         qoes = {}
+        instant_rewards = {}
 
         for policy_name, policy in self.policies.items():
             self.logger.info(f"Evaluating policy: {policy_name}")
@@ -91,7 +93,7 @@ class Evaluator:
                     episode_reward += reward
 
                     if info['embedding_state'] == 'success' or info['embedding_state'] == 'fail': #not (reward == 0):
-                        if self.env.current_request_idx > 0:
+                        if self.env.current_request_idx >= 0:
                             prev_idx = self.env.current_request_idx - 1
                             if prev_idx < len(self.env.current_vn_requests):
                                 request = self.env.current_vn_requests[prev_idx]
@@ -105,7 +107,9 @@ class Evaluator:
 
                                 metrics.update(request, accepted, response_time, reward)
                                 print(f'request id: {self.env.current_request_idx-1} of group {self.env.group_id} {'embedded' if accepted == True else 'failed'} with reward {reward}')
-
+                                if policy_name not in instant_rewards:
+                                    instant_rewards[policy_name] = [] 
+                                instant_rewards[policy_name].append(reward)
 
                     
                     if terminated: # if all the request of the current group are hanlded
@@ -134,22 +138,37 @@ class Evaluator:
             # policy_results is a tuple where each element corresponds to one policy's result dict for this episode
             policy_names = list(self.policies.keys())
             total_rewards = {name: 0.0 for name in policy_names}
-            accepted_counts = {name: 0 for name in policy_names}
+            #accepted_counts = {name: 0 for name in policy_names}
+            accepted_counts = 0
+            
+            policy_results = list(policy_results)
+            refrence_index = policy_names.index('random')
+            reference_list = policy_results.pop(refrence_index)
+            policy_names.pop(refrence_index)
+
+            for id,req in enumerate(reference_list):
+                if req['accepted']:
+                    total_rewards['random'] += req['reward']
+                    #accepted_counts[policy_name] += 1
+                    accepted_counts += 1
+                        # Iterate over each policy's result dict for this episode
+                    for policy_idx, result_dict in enumerate(policy_results):
+                        policy_name = policy_names[policy_idx]
+                        total_rewards[policy_name] += result_dict[id]['reward']
+                        #accepted_counts[policy_name] += 1
         
-            # Iterate over each policy's result dict for this episode
-            for policy_idx, result_dict in enumerate(policy_results):
-                policy_name = policy_names[policy_idx]
-                if result_dict[episode]['accepted']:
-                    total_rewards[policy_name] += result_dict[episode]['reward']
-                    accepted_counts[policy_name] += 1
-        
+
+            policy_names.append('random')
+            policy_results.append(reference_list)
+
             # Compute averages only for policies with at least one accepted request
             for name in policy_names:
-                qoes[name] = {}
-                if accepted_counts[name] > 0:
-                    qoes[name][episode] = total_rewards[name] / accepted_counts[name]
+                if name not in qoes:
+                    qoes[name] = {}
+                if accepted_counts > 0:
+                    qoes[name][episode] = total_rewards[name] / accepted_counts #accepted_counts[name]
                 else:
-                    qoes[name][episode]= 0.0  # or None, depending on how you want to handle no accepted cases
+                    qoes[name][episode]= -10 # or None, depending on how you want to handle no accepted cases
                     
     
         print('reward:',rewards)
@@ -169,21 +188,36 @@ class Evaluator:
         policy_names = list(self.policies.keys())
         
         # ========== 1. QoE over episodes (time series) ==========
-        fig, ax = plt.subplots(1, 1, figsize=(12, 5))
+        fig, ax = plt.subplots(1, 2, figsize=(12, 5))
         
         num_episodes = len(qoes[list(self.policies.keys())[0]])  
 
         x_axis = range(1,num_episodes+1)  
         for policy in policy_names:
             y_vals = list(qoes[policy].values())
-            ax.plot(x_axis, y_vals, label=policy, alpha=0.7, linewidth=1.5)
+            ax[0].plot(x_axis, y_vals, label=policy, alpha=0.7, linewidth=1.5)
         
-        ax.set_xlabel("Episode")
-        ax.set_ylabel("Average QoE (per accepted request)")
-        ax.set_title("QoE Progress Over Episodes")
-        ax.legend()
-        ax.grid(True, alpha=0.3)
+        ax[0].set_xlabel("Episode")
+        ax[0].set_ylabel("Average QoE (per accepted request)")
+        ax[0].set_title("QoE Progress Over Episodes")
+        ax[0].legend()
+        ax[0].grid(True, alpha=0.3)
         
+
+        for policy in policy_names:
+            y_vals = instant_rewards[policy]
+            ax[1].plot( y_vals, label=policy, alpha=0.7, linewidth=1.5)
+        
+        ax[1].set_xlabel("requests")
+        ax[1].set_ylabel("Rewards ")
+        ax[1].set_title("Rewards Over Episodes")
+        ax[1].legend()
+        ax[1].grid(True, alpha=0.3)
+
+
+
+        instant_rewards
+
         plt.tight_layout()
         plt.savefig(plots_dir / "qoes_comparison_in_episodes.png", dpi=150, bbox_inches='tight')
         plt.show()
@@ -244,7 +278,8 @@ class Evaluator:
                 data.append({
                     'model': policy,
                     'acceptance_ratio': mean_acceptance.get(policy, 0.0),
-                    'reward': mean_reward.get(policy, 0.0)
+                    'reward': mean_reward.get(policy, 0.0),
+                    'qoe': qoes[policy]
                 })
             
             df = pd.DataFrame(data)
