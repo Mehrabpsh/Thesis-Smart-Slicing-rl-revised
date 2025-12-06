@@ -109,10 +109,10 @@ class Evaluator:
 
                     
                     if terminated: # if all the request of the current group are hanlded
-                        Episode_Metrics[run] = metrics.request_metrics
+                        Episodes_Metrics[run] = metrics.request_metrics
                         if episode not in acceptance_ratios:
                            acceptance_ratios[episdoe] = {}    
-                        acceptance_ratios[episdoe][policy_name] = metrics.accepted_requests / metrics.total_requests}
+                        acceptance_ratios[episdoe][policy_name] = metrics.accepted_requests / metrics.total_requests
                         #Episodes_Metrics[run] = metrics.compute()
                         metrics.reset()
                         break
@@ -138,7 +138,7 @@ class Evaluator:
             qoe_exh = 0
             reward_random = 0
             reward_exh = 0
-            for exh_dict, rand_dict in zip((exh_dicts, rand_dicts):
+            for exh_dict, rand_dict in zip(exh_dicts, rand_dicts):
                 reward_random =+ random_dict['reward']
                 reward_exh =+ random_dict['reward']
                 if exh_dict['accepted']:
@@ -217,7 +217,7 @@ class Evaluator:
         values1 = [np.mean([ acceptance_ratios[i]['random'] for i in acceptance_ratios.keys()]),  np.mean([ acceptance_ratios[i]['exhaust'] for i in acceptance_ratios.keys()])]
         axes[0].bar(policies, values1)
         axes[0].set_title('episodes')
-        axes[0].set_ylabel'qoe'
+        axes[0].set_ylabel('qoe')
         axes[0].tick_params(axis='x', rotation=45)
 
 
@@ -225,7 +225,7 @@ class Evaluator:
         values2 = [np.mean([ rewards[i]['random'] for i in rewards.keys()]),  np.mean([ rewards[i]['exhaust'] for i in rewards.keys()])]
         axes[0].bar(policies, values2)
         axes[0].set_title('episodes')
-        axes[0].set_ylabel'qoe'
+        axes[0].set_ylabel('qoe')
         axes[0].tick_params(axis='x', rotation=45)
         
         plt.tight_layout()
