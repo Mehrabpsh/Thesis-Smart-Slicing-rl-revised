@@ -20,7 +20,6 @@ class Metrics:
     rejected_requests: int = 0
     episode_rewards: List[float] = field(default_factory=list)
     request_metrics: List[Dict] = field(default_factory=list)
-    success_indices : Dict[int,bool] = {}
     
     def update(
         self,
