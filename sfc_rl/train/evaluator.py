@@ -130,7 +130,7 @@ class Evaluator:
             
             # all_results[policy_name] = avg_metrics
 
-            all_results_raw[policy_name] =  Episode_Metrics
+            all_results_raw[policy_name] =  Episodes_Metrics
 
         for episode , (exh_dicts, rand_dicts) in enumerate(zip(all_results_raw['exhaust'].values(), all_results_raw['random'].values())):
             num = 0 
