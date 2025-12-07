@@ -36,6 +36,8 @@ class ExhaustiveSolver:
         self._buffer : Optional[Tuple[Dict[int, int], Dict[tuple, list]]] = None
         self._groupID : int = -1
         self.solutionTime : float = 0
+        self.objective_values = []
+        self.complete_solutions = []
 
     def solve(self, env: SFCEnvRevised) -> int:
         """Solve current request using exhaustive search.
@@ -84,6 +86,8 @@ class ExhaustiveSolver:
             env.partial_embedding,
         )
         
+        self.objective_values = []
+        self.complete_solutions = complete_solutions
         # Evaluate each complete solution
         for embedding, path_embeddings in complete_solutions:
             
@@ -97,12 +101,16 @@ class ExhaustiveSolver:
                     objective_value = env.reward_fn.compute(
                         env.pn, current_request, embedding, path_embeddings, True
                     )
+
                 except Exception:
                     objective_value = float('-inf')
             
             if objective_value > best_objective:
                 best_objective = objective_value
                 best_solution = (embedding, path_embeddings)
+            
+            self.objective_values.append(objective_value)
+
         
         self._buffer = best_solution
         self._requestID = env.current_request_idx
@@ -186,6 +194,8 @@ class ExhaustiveSolver:
                 
                 # Backtrack: remove this placement
                 del current_embedding[vnf_idx]
+        
+
         
         # Start tree search from current state
         _recursive_tree_search(start_vnf_idx, partial_embedding.copy())

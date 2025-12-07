@@ -284,7 +284,7 @@ def main(cfg: DictConfig) -> None:
 
         logger.info("Starting Evaluating...")
         evaluator = Evaluator(env,
-        policies={'random':RandomPolicy(model_cfg.get("seed", 42)),'dqn':trained_policy,'exhaustive':ExhaustiveSolver( max_embeddings=1000000, seed = model_cfg.get("seed", 42))},
+        policies={'random':RandomPolicy(model_cfg.get("seed", 42)),'exhaustive':ExhaustiveSolver( max_embeddings=1000000, seed = model_cfg.get("seed", 42))},
         config=eval_cfg, output_dir= output_dir / Path(eval_cfg.get('output_dir','output_eval')),logger = logger)
 
         evaluator.evaluate()

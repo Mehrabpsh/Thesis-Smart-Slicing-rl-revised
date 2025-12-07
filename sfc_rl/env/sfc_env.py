@@ -643,9 +643,20 @@ class SFCEnvRevised:
                     return obs, reward, Terminated, False, info
             
 
-
-
-
+            #----------------------------------*******************-------------
+            # added due to the fact that each step, each model should see the same state
+            #Deallocate
+            for vnf_id, pn_node_id in self.partial_embedding.items():
+                vnf = current_request.get_vnf(vnf_id)
+                node = self.pn.get_node(pn_node_id)
+                node.deallocate(vnf.cpu_demand)
+            
+            for path_key, path in self.path_embeddings.items():
+                for i in range(len(path) - 1):
+                    link = self.pn.get_link(path[i], path[i + 1])
+                    if link:
+                        link.deallocate(current_request.bandwidth_demand)
+            #--------------------------------------------
 
 
             # Move to next VNF
@@ -657,10 +668,17 @@ class SFCEnvRevised:
                 reward = self.reward_fn.compute(
                     self.pn, current_request, self.partial_embedding.copy(), self.path_embeddings.copy(), True
                 )
+
+                print(f'the embedding map : {self.partial_embedding}')
                 self.embedding_state = 'success'
+                a =  self.partial_embedding.copy()
+                b =  self.path_embeddings.copy()
+
                 self._move_to_next_request()
                 obs = self._get_observation()
                 info = self._get_info()
+                info['partial_embedding'] = a 
+                info['path_embeddings'] = b 
                 #terminated = self.current_request_idx >= len(self.vn_requests)
                 #return obs, reward, terminated, False, info
                 Terminated = self.current_request_idx >= len(self.current_vn_requests)
@@ -767,6 +785,7 @@ class SFCEnvRevised:
             "step_count": self.step_count,
             "episode_step_count": self.episode_step_count,
             "partial_embedding": self.partial_embedding.copy(),
+            "path_embeddings": self.path_embeddings.copy(),
             'embedding_state': self.embedding_state,
         }
     

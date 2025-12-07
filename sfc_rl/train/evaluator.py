@@ -60,6 +60,9 @@ class Evaluator:
         rewards = {}
         qoes = {}
         instant_rewards = {}
+        #for debbuging purposes
+        succeeded_embeddings_random = {}
+        possible_embeddings_exhaustive = {}
 
         for policy_name, policy in self.policies.items():
             self.logger.info(f"Evaluating policy: {policy_name}")
@@ -100,17 +103,25 @@ class Evaluator:
                                 accepted = True if info['embedding_state'] == 'success' else False
                                 if isinstance(policy, ExhaustiveSolver):
                                     response_time = policy.solutionTime
+                                    #print(f'policy.objective_values of exhasutive policy: {policy.objective_values}')
+                                    #if accepted: # for debugging
+                                    possible_embeddings_exhaustive[(self.env.group_id,self.env.current_request_idx-1)] = [choice[0] for choice in policy.complete_solutions]
                                 elif isinstance(policy, RandomPolicy):
+                                    if accepted: # for debugging
+                                        succeeded_embeddings_random[(self.env.group_id,self.env.current_request_idx-1)] = info['partial_embedding']
                                     response_time = policy.solutionTime * self.env.current_vn_requests[self.env.current_request_idx-1].sfc_length * 1e2
                                 elif isinstance(policy, DQNPolicy ):
                                     response_time =  1* self.env.current_vn_requests[self.env.current_request_idx-1].sfc_length
 
                                 metrics.update(request, accepted, response_time, reward)
-                                print(f'request id: {self.env.current_request_idx-1} of group {self.env.group_id} {'embedded' if accepted == True else 'failed'} with reward {reward}')
+                                #available_cpu = {f'node {idx}':self.env.pn.nodes[idx].available_cpu for idx in self.env.pn.nodes.keys()}
+                                #available_band = {f'link {idx}':pnlinks.available_bandwidth for idx, pnlinks in enumerate(self.env.pn.links)}
+
+                                print(f'request id: {self.env.current_request_idx-1} of group {self.env.group_id} {'embedded' if accepted == True else 'failed'} with reward {reward}') #.\n available_cpus: {available_cpu} and available_bands{available_band} ')
                                 if policy_name not in instant_rewards:
                                     instant_rewards[policy_name] = [] 
                                 instant_rewards[policy_name].append(reward)
-
+                             
                     
                     if terminated: # if all the request of the current group are hanlded
                         Episodes_Metrics[run] = metrics.request_metrics # to calculate qoe, i need it 
@@ -133,6 +144,15 @@ class Evaluator:
             all_results_raw[policy_name] =  Episodes_Metrics
 
         
+
+        for  (grp,idx), solution in succeeded_embeddings_random.items():
+            
+            if solution in possible_embeddings_exhaustive[(grp,idx)]:
+                if list(solution.keys())[-1] == (grp,idx):
+                    self.logger.info('All matched')
+                continue
+            self.logger.critical(f'(grp,idx): {(grp,idx)} mismached ')
+
         # For each episode, iterate over all policies' results in parallel
         for episode, policy_results in enumerate(zip(*[list(all_results_raw[policy_name].values()) for policy_name in self.policies.keys()])):
             # policy_results is a tuple where each element corresponds to one policy's result dict for this episode
@@ -171,9 +191,9 @@ class Evaluator:
                     qoes[name][episode]= -10 # or None, depending on how you want to handle no accepted cases
                     
     
-        print('reward:',rewards)
+        #print('reward:',rewards)
         print('qoe:',qoes)
-        print('accp:',acceptance_ratios)
+        #print('accp:',acceptance_ratios)
 
 
         #all_results[policy]= {'acceptance_ratio': acceptance_ratios[policy],'qoe':qoe[policy],'reward':rewards[policy]} for policy in self.policies.keys()
